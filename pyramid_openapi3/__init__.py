@@ -41,6 +41,7 @@ APIS = []
 
 def includeme(config: Configurator) -> None:
     """Pyramid knob."""
+    config.add_request_method(openapi_validated, name="openapi_validated", reify=True)
     config.add_view_deriver(openapi_view)
     config.add_directive("pyramid_openapi3_add_formatter", add_formatter)
     config.add_directive("pyramid_openapi3_add_explorer", add_explorer_view)
@@ -64,6 +65,32 @@ def includeme(config: Configurator) -> None:
     )
 
 
+def openapi_validated(request: Request) -> dict:
+    """Get validated parameters."""
+    # Validate request and attach all findings for view to introspect
+    validate_request = asbool(
+        request.registry.settings.get(
+            "pyramid_openapi3.enable_request_validation", True
+        )
+    )
+    validate_response = asbool(
+        request.registry.settings.get(
+            "pyramid_openapi3.enable_response_validation", True
+        )
+    )
+    request.environ["pyramid_openapi3.validate_response"] = validate_response
+    gsettings = settings = request.registry.settings["pyramid_openapi3"]
+    route_settings = gsettings.get("routes")
+    if route_settings and request.matched_route.name in route_settings:
+        settings = request.registry.settings[route_settings[request.matched_route.name]]
+
+    if validate_request:
+        request.environ["pyramid_openapi3.validate_request"] = True
+        openapi_request = PyramidOpenAPIRequestFactory.create(request)
+        validated = settings["request_validator"].validate(openapi_request)
+        return validated
+
+
 Context = t.TypeVar("Context")
 View = t.Callable[[Context, Request], Response]
 
@@ -81,35 +108,13 @@ def openapi_view(view: View, info: ViewDeriverInfo) -> View:
     if info.options.get("openapi"):
 
         def wrapper_view(context: Context, request: Request) -> Response:
-            # Validate request and attach all findings for view to introspect
             validate_request = asbool(
                 request.registry.settings.get(
                     "pyramid_openapi3.enable_request_validation", True
                 )
             )
-            validate_response = asbool(
-                request.registry.settings.get(
-                    "pyramid_openapi3.enable_response_validation", True
-                )
-            )
-            request.environ["pyramid_openapi3.validate_response"] = validate_response
-            gsettings = settings = request.registry.settings["pyramid_openapi3"]
-            route_settings = gsettings.get("routes")
-            if route_settings and request.matched_route.name in route_settings:
-                settings = request.registry.settings[
-                    route_settings[request.matched_route.name]
-                ]
-
-            if validate_request:
-                request.environ["pyramid_openapi3.validate_request"] = True
-                openapi_request = PyramidOpenAPIRequestFactory.create(request)
-                request.openapi_validated = settings["request_validator"].validate(
-                    openapi_request
-                )
-                if request.openapi_validated.errors:
-                    raise RequestValidationError(
-                        errors=request.openapi_validated.errors
-                    )
+            if validate_request and request.openapi_validated.errors:
+                raise RequestValidationError(errors=request.openapi_validated.errors)
 
             # Do the view
             return view(context, request)

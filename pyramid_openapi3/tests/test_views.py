@@ -9,6 +9,7 @@ from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IRoutesMapper
 from pyramid.interfaces import IView
 from pyramid.interfaces import IViewClassifier
+from pyramid.request import apply_request_extensions
 from pyramid.router import Router
 from pyramid.testing import DummyRequest
 from pyramid.testing import testConfig
@@ -380,6 +381,7 @@ def test_openapi_view() -> None:
             (IViewClassifier, request_interface, Interface), IView, name=""
         )
         request = DummyRequest(config=config, content_type="text/html")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         response = view(context, request)
@@ -434,6 +436,7 @@ def test_multiple_openapi_views() -> None:
             (IViewClassifier, request_interface, Interface), IView, name=""
         )
         request = DummyRequest(config=config, content_type="text/html")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         response = view(context, request)
@@ -445,6 +448,7 @@ def test_multiple_openapi_views() -> None:
             (IViewClassifier, request_interface, Interface), IView, name=""
         )
         request = DummyRequest(config=config, content_type="text/html")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="bar", pattern="/bar")
         context = None
         response = view(context, request)
@@ -491,6 +495,7 @@ def test_path_parameters() -> None:
         )
         # Test validation fails
         request = DummyRequest(config=config, content_type="application/json")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         with pytest.raises(
@@ -502,6 +507,7 @@ def test_path_parameters() -> None:
         request = DummyRequest(
             config=config, params={"foo": "1"}, content_type="application/json"
         )
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         response = view(context, request)
@@ -548,6 +554,7 @@ def test_header_parameters() -> None:
         )
         # Test validation fails
         request = DummyRequest(config=config, content_type="text/html")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
 
@@ -560,6 +567,7 @@ def test_header_parameters() -> None:
         request = DummyRequest(
             config=config, headers={"foo": "1"}, content_type="text/html"
         )
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         response = view(context, request)
@@ -606,6 +614,7 @@ def test_cookie_parameters() -> None:
         )
         # Test validation fails
         request = DummyRequest(config=config, content_type="text/html")
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         with pytest.raises(
@@ -617,6 +626,7 @@ def test_cookie_parameters() -> None:
         request = DummyRequest(
             config=config, cookies={"foo": "1"}, content_type="text/html"
         )
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         context = None
         response = view(context, request)

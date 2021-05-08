@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pyramid.interfaces import IRouteRequest
 from pyramid.interfaces import IView
 from pyramid.interfaces import IViewClassifier
+from pyramid.request import apply_request_extensions
 from pyramid.request import Request
 from pyramid.response import Response
 from pyramid.router import Router
@@ -91,6 +92,7 @@ class RequestValidationBase(TestCase):
         request = DummyRequest(
             config=self.config, params=params, content_type="text/html"
         )
+        apply_request_extensions(request)
         request.matched_route = DummyRoute(name="foo", pattern="/foo")
         return request
 
